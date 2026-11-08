@@ -1,0 +1,24 @@
+# DependencyVerifier agent image
+
+`ghcr.io/dependencyverifier/agent`: the [DependencyVerifier agent](https://github.com/DependencyVerifier/agent) as a container image. Add it to a Compose project, or run it as an ECS `DAEMON` service, without installing anything on the host.
+
+- Static binary on `scratch`, non-root, read-only, configured only through environment variables and secrets.
+- Docker is read through a GET-only socket proxy (`tecnativa/docker-socket-proxy`); the agent never mounts the socket.
+- Multi-arch (amd64, arm64) and signed with cosign once CI is set up.
+
+## Usage
+
+See [`compose.example.yaml`](compose.example.yaml). Labels on your services (`dev.depverify.monitor`, `dev.depverify.name`, `dev.depverify.environment`, `dev.depverify.paths`) refine what is monitored. Keep the `monitoring-agent-data` volume: losing it means enrolling and approving the agent again.
+
+## Build
+
+```bash
+docker build -t depverify-agent .
+docker build --build-arg AGENT_REF=<tag or commit> -t depverify-agent:<version> .
+```
+
+The image builds the agent from [`DependencyVerifier/agent`](https://github.com/DependencyVerifier/agent) at `AGENT_REF` (default `main`).
+
+## License
+
+[Apache-2.0](LICENSE).

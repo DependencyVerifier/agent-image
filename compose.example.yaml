@@ -1,0 +1,56 @@
+# Add the DependencyVerifier agent to an existing Compose project (mode `container`, scope `compose`).
+# The console generates this snippet with your enrollment token and the image pinned by digest.
+services:
+  # Your application services: optional labels refine what is monitored.
+  app:
+    image: registry.example.com/my-project/app:1.4.2
+    labels:
+      dev.depverify.name: "Public API"
+      dev.depverify.paths: "/var/www/api"
+  redis:
+    image: redis:7.4
+    labels:
+      dev.depverify.monitor: "false"   # not monitored
+
+  monitoring-agent:
+    image: ghcr.io/dependencyverifier/agent@sha256:<digest>   # pinned by digest, signed with cosign
+    restart: unless-stopped
+    environment:
+      AGENT_MODE: container
+      AGENT_SCOPE: compose                       # default: every container of this Compose project
+      AGENT_CONSOLE_URL: https://console.example.com
+      AGENT_CONSOLE_PUBKEY: "<console public key>"
+      AGENT_TOKEN_FILE: /run/secrets/agent_token # read on first start only
+      DOCKER_HOST: tcp://monitoring-docker-proxy:2375
+    secrets: [agent_token]
+    volumes:
+      - monitoring-agent-data:/var/lib/agent     # private key + anti-replay memory: MUST persist
+    networks: [monitoring-internal, default]     # default = outbound HTTPS to the console
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  # The only service that mounts the Docker socket, GET requests only.
+  monitoring-docker-proxy:
+    image: tecnativa/docker-socket-proxy:<pinned version>
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      INFO: 1
+      VERSION: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [monitoring-internal]
+    read_only: true
+
+networks:
+  monitoring-internal:
+    internal: true
+
+volumes:
+  monitoring-agent-data:
+
+secrets:
+  agent_token:
+    file: ./.agent_token   # useless after enrollment (single-use token)

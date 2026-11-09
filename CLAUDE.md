@@ -11,5 +11,7 @@ Builds `ghcr.io/dependencyverifier/agent` from the [`agent`](https://github.com/
 - `scratch` + CA certificates, **non-root**, `ENTRYPOINT ["/agent"]`, config only via env vars and secrets; state volume `/var/lib/agent` must persist.
 - The agent **never mounts the Docker socket**: only the `tecnativa/docker-socket-proxy` sidecar does, GET only (`CONTAINERS=1`, `IMAGES=1`, `INFO=1`, `VERSION=1`, `POST=0`), on an `internal: true` network.
 - Hardening in examples: `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges:true`; images pinned by digest.
+- Local build from a checkout of the agent: `docker build --build-context agent-src=../agent .` (the `agent-src` stage is the agent's sources).
+- CI (`.github/workflows/ci.yml`): hadolint, Compose example validation, image build + smoke test (skipped while `agent` is private and `AGENT_REPO_TOKEN` is unset).
 - Later: multi-arch build (amd64/arm64), cosign signature and publication on ghcr.io in CI.
 - Commits: subject line only, `type: Capitalized imperative subject`, no body, no trailer.

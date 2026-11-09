@@ -17,7 +17,15 @@ docker build -t depverify-agent .
 docker build --build-arg AGENT_REF=<tag or commit> -t depverify-agent:<version> .
 ```
 
-The image builds the agent from [`DependencyVerifier/agent`](https://github.com/DependencyVerifier/agent) at `AGENT_REF` (default `main`).
+The image builds the agent from [`DependencyVerifier/agent`](https://github.com/DependencyVerifier/agent) at `AGENT_REF` (default `main`). To build from a local checkout instead (for example while the agent repository is private):
+
+```bash
+docker build --build-context agent-src=../agent -t depverify-agent .
+```
+
+## CI
+
+Lints the Dockerfile (hadolint, `.hadolint.yaml`) and the Compose example, then builds and runs the image. While `DependencyVerifier/agent` is private, the build needs a repository secret `AGENT_REPO_TOKEN` (fine-grained token, *Contents: read* on `agent`); without it the build job is skipped with a notice.
 
 ## License
 

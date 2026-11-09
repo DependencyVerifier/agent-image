@@ -3,15 +3,21 @@
 # Builds the agent from https://github.com/DependencyVerifier/agent at AGENT_REF:
 #   docker build -t depverify-agent .
 #   docker build --build-arg AGENT_REF=v0.1.0 -t depverify-agent:0.1.0 .
+# Or from a local checkout of the agent (the `agent-src` stage is replaced by that folder):
+#   docker build --build-context agent-src=../agent -t depverify-agent .
 # Multi-arch (amd64/arm64) and cosign signing happen in CI (not yet set up).
 
 ARG RUST_VERSION=1
 
+# --- Agent sources ------------------------------------------------------------
+FROM scratch AS agent-src
+ARG AGENT_REF=main
+ADD https://github.com/DependencyVerifier/agent.git#${AGENT_REF} /
+
 # --- Build: static musl binary ------------------------------------------------
 FROM rust:${RUST_VERSION}-alpine AS build
 RUN apk add --no-cache musl-dev
-ARG AGENT_REF=main
-ADD https://github.com/DependencyVerifier/agent.git#${AGENT_REF} /src
+COPY --from=agent-src / /src
 WORKDIR /src
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \

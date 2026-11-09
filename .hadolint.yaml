@@ -1,0 +1,5 @@
+# DL3018 (pin apk package versions): the apk packages are only used in build stages (musl-dev,
+# ca-certificates) and Alpine drops old versions from its mirrors, so pins would break the build.
+# The final image is `scratch`; base images are kept current by Dependabot.
+ignored:
+  - DL3018

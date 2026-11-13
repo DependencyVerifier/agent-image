@@ -1,0 +1,44 @@
+#syntax=docker/dockerfile:1
+# Official image of a released agent (ghcr.io/dependencyverifier/agent:<version>), built by the release workflow:
+#   docker buildx build -f Dockerfile.release --build-arg AGENT_VERSION=0.1.0 --platform linux/amd64,linux/arm64 .
+# It holds exactly the binary of the GitHub release, verified here as every console verifies it (cadrage §6): the
+# checksums signed with minisign by the project release key, their trusted comment naming this version, the binary
+# of the target architecture matching them. Nothing is compiled: amd64 and arm64 come from the same signed release.
+
+ARG AGENT_VERSION
+
+# --- Verification, on the build platform (no emulation) --------------------------
+FROM --platform=$BUILDPLATFORM alpine:3.22 AS verify
+ARG AGENT_VERSION
+ARG TARGETARCH
+# The project release key (minisign, key id EBDDB456A4BF3356).
+ARG RELEASE_PUBKEY=RWRWM7+kVrTd63TMnDIUOLjb78MC3QJTImbW3Gi/8ooaxK7iF2tC/ZSz
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+RUN apk add --no-cache ca-certificates minisign
+WORKDIR /release
+ADD https://github.com/DependencyVerifier/agent/releases/download/v${AGENT_VERSION}/SHA256SUMS \
+    https://github.com/DependencyVerifier/agent/releases/download/v${AGENT_VERSION}/SHA256SUMS.minisig \
+    https://github.com/DependencyVerifier/agent/releases/download/v${AGENT_VERSION}/depverify-agent-x86_64-linux \
+    https://github.com/DependencyVerifier/agent/releases/download/v${AGENT_VERSION}/depverify-agent-aarch64-linux \
+    ./
+RUN set -u; \
+    case "${TARGETARCH}" in amd64) arch=x86_64 ;; arm64) arch=aarch64 ;; *) echo "unsupported ${TARGETARCH}" >&2; exit 1 ;; esac; \
+    minisign -V -m SHA256SUMS -P "${RELEASE_PUBKEY}" | tee /dev/stderr | grep -qx "Trusted comment: depverify-agent ${AGENT_VERSION}"; \
+    grep " depverify-agent-${arch}-linux\$" SHA256SUMS | sha256sum -c -; \
+    install -m 0755 "depverify-agent-${arch}-linux" /agent
+
+# --- Runtime: scratch, non-root --------------------------------------------------
+FROM scratch
+ARG AGENT_VERSION
+LABEL org.opencontainers.image.title="depverify-agent" \
+      org.opencontainers.image.description="DependencyVerifier agent: inventories what runs in production and reports it over an outbound-only, signed connection." \
+      org.opencontainers.image.source="https://github.com/DependencyVerifier/agent-image" \
+      org.opencontainers.image.version="${AGENT_VERSION}" \
+      org.opencontainers.image.licenses="Apache-2.0"
+COPY --from=verify /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=verify /agent /agent
+# Persistent state (private key, anti-replay memory) must live on a volume.
+VOLUME ["/var/lib/agent"]
+ENV AGENT_MODE=container
+USER 65532:65532
+ENTRYPOINT ["/agent"]

@@ -13,5 +13,5 @@ Builds `ghcr.io/dependencyverifier/agent` from the [`agent`](https://github.com/
 - Hardening in examples: `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges:true`; images pinned by digest.
 - Local build from a checkout of the agent: `docker build --build-context agent-src=../agent .` (the `agent-src` stage is the agent's sources).
 - CI (`.github/workflows/ci.yml`): hadolint, Compose example validation, image build + smoke test (skipped while `agent` is private and `AGENT_REPO_TOKEN` is unset).
-- Later: multi-arch build (amd64/arm64), cosign signature and publication on ghcr.io in CI.
+- Release (`.github/workflows/release.yml`, tag `vX.Y.Z` = an agent release): `Dockerfile.release` downloads the signed release binaries of the agent and verifies them on the build platform (minisign with the project release key `RWRWM7…`, trusted comment naming the version, SHA-256), never compiles; multi-arch (amd64, arm64) push to `ghcr.io/dependencyverifier/agent:X.Y.Z` and `:latest` with provenance and SBOM, then keyless cosign signature (GitHub OIDC). Both Dockerfiles are linted by hadolint (`.hadolint.yaml`).
 - Commits: subject line only, `type: Capitalized imperative subject`, no body, no trailer.

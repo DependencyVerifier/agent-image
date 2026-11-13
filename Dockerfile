@@ -5,7 +5,7 @@
 #   docker build --build-arg AGENT_REF=v0.1.0 -t depverify-agent:0.1.0 .
 # Or from a local checkout of the agent (the `agent-src` stage is replaced by that folder):
 #   docker build --build-context agent-src=../agent -t depverify-agent .
-# Multi-arch (amd64/arm64) and cosign signing happen in CI (not yet set up).
+# The published image comes from Dockerfile.release (the signed release binaries); this one builds from source.
 
 ARG RUST_VERSION=1
 

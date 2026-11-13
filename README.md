@@ -4,7 +4,7 @@
 
 - Static binary on `scratch`, non-root, read-only, configured only through environment variables and secrets.
 - Docker is read through a GET-only socket proxy (`tecnativa/docker-socket-proxy`); the agent never mounts the socket.
-- Multi-arch (amd64, arm64) and signed with cosign once CI is set up.
+- Multi-arch (amd64, arm64), built from the signed release binaries of the agent, signed with cosign (keyless).
 
 ## Usage
 
@@ -22,6 +22,24 @@ The image builds the agent from [`DependencyVerifier/agent`](https://github.com/
 ```bash
 docker build --build-context agent-src=../agent -t depverify-agent .
 ```
+
+## Releases
+
+A tag `vX.Y.Z` of this repository (the version of a published agent release) runs `.github/workflows/release.yml`:
+`Dockerfile.release` downloads that release, verifies `SHA256SUMS.minisig` with the project release key (minisign, key
+id `EBDDB456A4BF3356`), checks that its trusted comment names this version and the binary of each architecture, then
+the image is pushed as `ghcr.io/dependencyverifier/agent:X.Y.Z` and `:latest` (amd64, arm64, with provenance and
+SBOM attestations) and signed with cosign through GitHub OIDC. Nothing is compiled: the image holds exactly the
+binary a console would serve.
+
+```bash
+docker buildx build -f Dockerfile.release --build-arg AGENT_VERSION=0.1.0 --platform linux/amd64,linux/arm64 .
+cosign verify ghcr.io/dependencyverifier/agent:0.1.0 \
+  --certificate-identity-regexp '^https://github.com/DependencyVerifier/agent-image/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Pin the image by digest in production (`ghcr.io/dependencyverifier/agent@sha256:…`).
 
 ## CI
 

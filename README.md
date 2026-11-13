@@ -10,6 +10,20 @@
 
 See [`compose.example.yaml`](compose.example.yaml). Labels on your services (`dev.depverify.monitor`, `dev.depverify.name`, `dev.depverify.environment`, `dev.depverify.paths`) refine what is monitored. Keep the `monitoring-agent-data` volume: losing it means enrolling and approving the agent again.
 
+## Inside an application's image (`embedded`)
+
+When neither the host nor Docker can be reached (a restrictive host, a PaaS), copy the binary into the application's
+image and run it next to the application; it then inventories its own container only. One agent per replica: use a
+reusable enrollment token, and keep `/var/lib/agent` on a volume, else every recreation enrolls a new agent.
+
+```dockerfile
+COPY --from=ghcr.io/dependencyverifier/agent@sha256:<digest> /agent /usr/local/bin/depverify-agent
+ENV AGENT_MODE=embedded AGENT_CONSOLE_URL=https://console.example.com AGENT_CONSOLE_PUBKEY="ed25519:…" \
+    AGENT_TOKEN_FILE=/run/secrets/agent_token
+VOLUME /var/lib/agent
+ENTRYPOINT ["sh", "-c", "depverify-agent run & exec \"$@\"", "--"]
+```
+
 ## Build
 
 ```bash

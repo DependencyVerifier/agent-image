@@ -82,4 +82,4 @@ jobs:
 
       - name: Smoke test
         if: steps.source.outputs.mode != 'skip'
-        run: docker run --rm depverify-agent:ci
+        run: docker run --rm depverify-agent:ci version

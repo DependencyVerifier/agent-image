@@ -5,6 +5,10 @@ name: Release
 # then signs the image with cosign, keyless (GitHub OIDC): `cosign verify ghcr.io/dependencyverifier/agent:X.Y.Z
 # --certificate-identity-regexp '^https://github.com/DependencyVerifier/agent-image/' --certificate-oidc-issuer
 # https://token.actions.githubusercontent.com`.
+#
+# A tag `vX.Y.Z-N` is revision N of the image for the same agent release X.Y.Z (a fix of the image itself): it builds
+# from that agent release and publishes :X.Y.Z-N, then moves :X.Y.Z and :latest to it. A git tag of this repository
+# is never rewritten.
 
 on:
   push:
@@ -43,11 +47,14 @@ jobs:
 
       - name: Build and push (amd64, arm64)
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          tag="${GITHUB_REF_NAME#v}"   # X.Y.Z, or X.Y.Z-N for a revision of the image
+          version="${tag%%-*}"        # the agent release: X.Y.Z
+          tags=(--tag "${IMAGE}:${tag}" --tag "${IMAGE}:latest")
+          [ "$tag" = "$version" ] || tags+=(--tag "${IMAGE}:${version}")
           docker buildx build -f Dockerfile.release \
             --platform linux/amd64,linux/arm64 \
             --build-arg AGENT_VERSION="${version}" \
-            --tag "${IMAGE}:${version}" --tag "${IMAGE}:latest" \
+            "${tags[@]}" \
             --provenance=mode=max --sbom=true \
             --metadata-file metadata.json \
             --push .

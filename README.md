@@ -10,6 +10,17 @@
 
 See [`compose.example.yaml`](compose.example.yaml). Labels on your services (`dev.depverify.monitor`, `dev.depverify.name`, `dev.depverify.environment`, `dev.depverify.paths`) refine what is monitored. Keep the `monitoring-agent-data` volume: losing it means enrolling and approving the agent again.
 
+The agent runs as uid `65532` and writes its state (private key, identity, anti-replay memory) to `/var/lib/agent`.
+The image holds that directory as `65532:65532`, mode `0700`, and Docker copies both into a named volume only when the
+volume is **empty** on first mount. A volume created as `root` by an image before `0.3.0-1` keeps its owner and the
+agent fails with `/var/lib/agent/agent.tmp: Permission denied`; repair it once:
+
+```bash
+docker run --rm -v <volume>:/v busybox chown -R 65532:65532 /v && docker run --rm -v <volume>:/v busybox chmod 700 /v
+```
+
+A bind mount gets nothing from the image: the host directory must belong to uid `65532` (mode `0700`).
+
 ## Inside an application's image (`embedded`)
 
 When neither the host nor Docker can be reached (a restrictive host, a PaaS), copy the binary into the application's
@@ -45,6 +56,9 @@ id `EBDDB456A4BF3356`), checks that its trusted comment names this version and t
 the image is pushed as `ghcr.io/dependencyverifier/agent:X.Y.Z` and `:latest` (amd64, arm64, with provenance and
 SBOM attestations) and signed with cosign through GitHub OIDC. Nothing is compiled: the image holds exactly the
 binary a console would serve.
+
+A tag `vX.Y.Z-N` is revision `N` of the image for the same agent release (a fix of the image itself): it is built from
+agent release `X.Y.Z`, pushed as `:X.Y.Z-N`, and moves `:X.Y.Z` and `:latest` to it. A git tag is never rewritten.
 
 ```bash
 docker buildx build -f Dockerfile.release --build-arg AGENT_VERSION=0.1.0 --platform linux/amd64,linux/arm64 .

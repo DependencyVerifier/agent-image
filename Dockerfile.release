@@ -26,6 +26,8 @@ RUN set -u; \
     minisign -V -m SHA256SUMS -P "${RELEASE_PUBKEY}" | tee /dev/stderr | grep -qx "Trusted comment: depverify-agent ${AGENT_VERSION}"; \
     grep " depverify-agent-${arch}-linux\$" SHA256SUMS | sha256sum -c -; \
     install -m 0755 "depverify-agent-${arch}-linux" /agent
+# The state directory, owned by the runtime user: Docker copies its owner and mode into an empty named volume.
+RUN install -d -o 65532 -g 65532 -m 0700 /state
 
 # --- Runtime: scratch, non-root --------------------------------------------------
 FROM scratch
@@ -37,6 +39,7 @@ LABEL org.opencontainers.image.title="depverify-agent" \
       org.opencontainers.image.licenses="Apache-2.0"
 COPY --from=verify /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=verify /agent /agent
+COPY --from=verify --chown=65532:65532 /state /var/lib/agent
 # Persistent state (private key, anti-replay memory) must live on a volume.
 VOLUME ["/var/lib/agent"]
 ENV AGENT_MODE=container

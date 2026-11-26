@@ -60,3 +60,6 @@ jobs:
 
       - name: Smoke test
         run: docker run --rm "${IMAGE}@${DIGEST}" version | tee /dev/stderr | grep -qx "depverify-agent ${VERSION}"
+
+      - name: State volume test (non-root writes to a fresh named volume)
+        run: ci/state-volume-test.sh "${IMAGE}@${DIGEST}"

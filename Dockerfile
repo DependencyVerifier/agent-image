@@ -26,7 +26,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 # --- CA certificates (rustls needs them; the final image has no package manager) -
 FROM alpine:3 AS certs
-RUN apk add --no-cache ca-certificates
+# Also the state directory, owned by the runtime user: Docker copies its owner and mode into an empty named volume.
+RUN apk add --no-cache ca-certificates \
+ && install -d -o 65532 -g 65532 -m 0700 /state
 
 # --- Runtime: scratch, non-root ----------------------------------------------
 FROM scratch
@@ -36,6 +38,7 @@ LABEL org.opencontainers.image.title="depverify-agent" \
       org.opencontainers.image.licenses="Apache-2.0"
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /depverify-agent /agent
+COPY --from=certs --chown=65532:65532 /state /var/lib/agent
 # Persistent state (private key, anti-replay memory) must live on a volume.
 VOLUME ["/var/lib/agent"]
 ENV AGENT_MODE=container

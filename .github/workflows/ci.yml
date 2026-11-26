@@ -83,3 +83,7 @@ jobs:
       - name: Smoke test
         if: steps.source.outputs.mode != 'skip'
         run: docker run --rm depverify-agent:ci version
+
+      - name: State volume test (non-root writes to a fresh named volume)
+        if: steps.source.outputs.mode != 'skip'
+        run: ci/state-volume-test.sh depverify-agent:ci

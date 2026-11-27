@@ -2,9 +2,9 @@ name: Release
 
 # A tag `vX.Y.Z` of this repository (the version of an agent release) publishes ghcr.io/dependencyverifier/agent:X.Y.Z
 # and :latest, for amd64 and arm64, from the signed binaries of that agent release (Dockerfile.release verifies them),
-# then signs the image with cosign, keyless (GitHub OIDC): `cosign verify ghcr.io/dependencyverifier/agent:X.Y.Z
-# --certificate-identity-regexp '^https://github.com/DependencyVerifier/agent-image/' --certificate-oidc-issuer
-# https://token.actions.githubusercontent.com`.
+# then signs the image with cosign, keyless (GitHub OIDC): `cosign verify ghcr.io/dependencyverifier/agent@sha256:<digest>
+# --certificate-identity 'https://github.com/DependencyVerifier/agent-image/.github/workflows/release.yml@refs/tags/<tag>'
+# --certificate-oidc-issuer https://token.actions.githubusercontent.com` (cosign 3 or later).
 #
 # A tag `vX.Y.Z-N` is revision N of the image for the same agent release X.Y.Z (a fix of the image itself): it builds
 # from that agent release and publishes :X.Y.Z-N, then moves :X.Y.Z and :latest to it. A git tag of this repository

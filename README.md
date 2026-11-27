@@ -62,12 +62,14 @@ agent release `X.Y.Z`, pushed as `:X.Y.Z-N`, and moves `:X.Y.Z` and `:latest` to
 
 ```bash
 docker buildx build -f Dockerfile.release --build-arg AGENT_VERSION=0.1.0 --platform linux/amd64,linux/arm64 .
-cosign verify ghcr.io/dependencyverifier/agent:0.1.0 \
-  --certificate-identity-regexp '^https://github.com/DependencyVerifier/agent-image/' \
+cosign verify ghcr.io/dependencyverifier/agent@sha256:<digest> \
+  --certificate-identity 'https://github.com/DependencyVerifier/agent-image/.github/workflows/release.yml@refs/tags/v0.4.0' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
-Pin the image by digest in production (`ghcr.io/dependencyverifier/agent@sha256:…`).
+Pin the image by digest in production (`ghcr.io/dependencyverifier/agent@sha256:…`) and verify that digest with the
+exact identity of the release workflow and of the tag that published it (`v0.4.0`, or `v0.4.0-1` for a revision),
+never a pattern of the whole repository. The signatures use the bundle format of cosign 3: cosign 2 finds none.
 
 ## CI
 
